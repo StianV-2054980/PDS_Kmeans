@@ -132,42 +132,52 @@ FileCSVWriter openDebugFile(const std::string &n)
 	return f;
 }
 
-std::vector<size_t> chooseCentroidsAtRandom(int numClusters, int numRows, Rng &rng) {
+std::vector<double> chooseCentroidsAtRandom(int numClusters, int numRows, int numCols, std::vector<double> &allData, Rng &rng) {
 	// Use rng to pick numCluster random points
-	std::vector<size_t> centroids(numClusters);
-	rng.pickRandomIndices(numRows, centroids);
+	std::vector<size_t> centroidsIndices(numClusters);
+	rng.pickRandomIndices(numRows, centroidsIndices);
+	std::vector<double> centroids(numClusters * numCols);
+	for(int j = 0; j < centroidsIndices.size(); j++){
+		for(int i = 0; i < numCols; i++){
+				centroids[j * numCols + i] = allData[centroidsIndices[j] + i];
+		}
+	}
 	return centroids;
 }
 
-std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t p, const std::vector<size_t>& centroids, const int numCols, const std::vector<double>& allData) {
+std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const int numCols, const std::vector<double>& allData) {
 	size_t closestCentroidIndex = 0;
-	double closestDistance = std::numeric_limits<double>::infinity();
+	double closestDistance = std::numeric_limits<double>::max();
 
 	for (size_t i = 0; i < centroids.size(); i++) {
 		double distance = 0;
 		for (int j = 0; j < numCols; j++) {
-			double diff = allData[p * numCols + j] - allData[centroids[i] * numCols + j];
-			distance += diff * diff;
+			double diff = allData[row * numCols + j] - centroids[i * numCols + j];
+			distance += (diff * diff);
 		}
-		distance = sqrt(distance);
-		if (distance < closestDistance) {
-			closestDistance = distance;
+		double dist = sqrt(distance);
+		if (dist < closestDistance) {
+			closestDistance = dist;
 			closestCentroidIndex = i;
 		}
 	}
 	return std::make_tuple(closestCentroidIndex, closestDistance);
 }
 
-size_t averageOfPointsWithCluster(int j, std::vector<double> clusters){
-	size_t numPoints = 0;
-	size_t sum = 0;
-	for (size_t i = 0; i < clusters.size(); i++) {
-		if (clusters[i] == j) {
-			numPoints++;
-			sum += i;
+std::vector<double> averageOfPointsWithCluster(int centroidIndex, int numCols, std::vector<double>& clusters, std::vector<double>& allData){
+	std::vector<double> newCentroid(numCols);
+	for(size_t col = 0; col < numCols; col++){
+		size_t numPoints = 0;
+		double sum = 0;
+		for (size_t i = 0; i < clusters.size(); i++) {
+			if (clusters[i] == centroidIndex) {
+				numPoints++;
+				sum += allData[i * numCols + col];
+			}
 		}
+		newCentroid[col] = sum/numPoints;
 	}
-	return sum / numPoints;
+	return newCentroid;
 }
 
 int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFileName,
@@ -212,9 +222,10 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
     // the best result of these repetitions.
 	for (int r = 0 ; r < repetitions ; r++)
 	{
+		std::cout << "Repetition " << r << std::endl;
 		size_t numSteps = 0;
  
-		std::vector<size_t> centroids = chooseCentroidsAtRandom(numClusters, numRows, rng);
+		std::vector<double> centroids = chooseCentroidsAtRandom(numClusters, numRows, numCols, allData, rng);	
 		std::vector<double> clusters(numRows, -1);
 
 		bool changed = true;
@@ -238,7 +249,10 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if (changed) {
 				// recalculate centroids based on current clustering
 				for (int j = 0; j < numClusters; j++) {
-					centroids[j] = averageOfPointsWithCluster(j, clusters);
+					std::vector<double> newCentroids = averageOfPointsWithCluster(j, numCols, clusters, allData);
+					for(int i = 0 ; i <numCols; i++){
+						centroids[j * numCols + i] = newCentroids[i];
+					}
 				}
 			}
 
@@ -247,7 +261,9 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 				bestDistSquaredSum = distanceSquaredSum;
 				bestClusters = clusters;
 			}
+			numSteps++;
 		}
+		std::cout << "End of repetition " << r << std::endl;
 
 		stepsPerRepetition[r] = numSteps;
 
@@ -268,8 +284,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 	// Write the number of steps per repetition, kind of a signature of the work involved
 	csvOutputFile.write(stepsPerRepetition, "# Steps: ");
-	// TODO: Write best clusters to csvOutputFile, something like
-	// csvOutputFile.write( best cluster indices )
+	csvOutputFile.write(bestClusters);
 	return 0;
 }
 
