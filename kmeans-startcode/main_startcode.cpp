@@ -139,6 +139,7 @@ std::vector<size_t> chooseCentroidsAtRandom(int numRows, Rng &rng) {
 	return centroids;
 }
 
+// Fout zit hier ergens
 std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t p, const std::vector<size_t>& centroids, const int numCols, const std::vector<double>& allData) {
 	size_t closestCentroidIndex = 0;
 	double closestDistance = std::numeric_limits<double>::infinity();
@@ -270,7 +271,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 	// Write the number of steps per repetition, kind of a signature of the work involved
 	csvOutputFile.write(stepsPerRepetition, "# Steps: ");
-	// Write best clusters to csvOutputFile, something like
+	// TODO: Write best clusters to csvOutputFile, something like
 	// csvOutputFile.write( best cluster indices )
 	return 0;
 }
