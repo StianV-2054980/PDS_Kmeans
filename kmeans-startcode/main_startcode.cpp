@@ -132,9 +132,9 @@ FileCSVWriter openDebugFile(const std::string &n)
 	return f;
 }
 
-std::vector<size_t> chooseCentroidsAtRandom(int numRows, Rng &rng) {
+std::vector<size_t> chooseCentroidsAtRandom(int numClusters, int numRows, Rng &rng) {
 	// Use rng to pick numCluster random points
-	std::vector<size_t> centroids(numRows);
+	std::vector<size_t> centroids(numClusters);
 	rng.pickRandomIndices(numRows, centroids);
 	return centroids;
 }
@@ -216,7 +216,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 	{
 		size_t numSteps = 0;
  
-		std::vector<size_t> centroids = chooseCentroidsAtRandom(numRows, rng);
+		std::vector<size_t> centroids = chooseCentroidsAtRandom(numClusters, numRows, rng);
 		std::vector<double> clusters(numRows, -1);
 
 		bool changed = true;
