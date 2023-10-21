@@ -14,5 +14,5 @@ all: kmeans
 clean:
 	rm -f kmeans
 
-kmeans: main_startcode.cpp rng.cpp
+kmeans: main_startcode.cpp rng.cpp timer.h
 	$(CXX) $(FLAGS) -o kmeans main_startcode.cpp rng.cpp
