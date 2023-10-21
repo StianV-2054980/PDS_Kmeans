@@ -227,9 +227,8 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 				size_t newCluster;
 				double distance;
 				std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(p, centroids, numCols, allData);
-				
 				distanceSquaredSum += distance;
-
+				
 				if (newCluster != clusters[p]) {
 					changed = true;
 					clusters[p] = newCluster;
