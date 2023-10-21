@@ -132,39 +132,30 @@ FileCSVWriter openDebugFile(const std::string &n)
 	return f;
 }
 
-std::vector<size_t> chooseCentroidsAtRandom(int numClusters, Rng &rng) {
+std::vector<size_t> chooseCentroidsAtRandom(int numRows, Rng &rng) {
 	// Use rng to pick numCluster random points
-	std::vector<size_t> centroids;
-	rng.pickRandomIndices(numClusters, centroids);
+	std::vector<size_t> centroids(numRows);
+	rng.pickRandomIndices(numRows, centroids);
 	return centroids;
 }
 
-double calculateEuclideanDistance(int pointIndex, size_t centroidIndex, const std::vector<size_t> &centroids, const double numCols, std::vector<double> &data) {
-    double distance = 0.0;
-    for (size_t i = 0; i < numCols; i++) {
-        double diff = data[pointIndex + i] - centroids[centroidIndex + i];
-        distance += diff;
-    }
-    return distance;
-}
+std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t p, const std::vector<size_t>& centroids, const int numCols, const std::vector<double>& allData) {
+	size_t closestCentroidIndex = 0;
+	double closestDistance = std::numeric_limits<double>::infinity();
 
-std::tuple<size_t, double> findClosestCentroidIndexAndDistance(int pointIndex, const std::vector<size_t> &centroids, const double numCols, std::vector<double> &data) {
-	// find closest centroid index
-	    double minDistance = std::numeric_limits<double>::max();
-    size_t closestCentroidIndex = 0;
+	for (size_t i = 0; i < centroids.size(); i++) {
+		double distance = 0;
+		for (int j = 0; j < numCols; j++) {
+			double diff = allData[p * numCols + j] - allData[centroids[i] * numCols + j];
+			distance += diff * diff;
+		}
+		if (distance < closestDistance) {
+			closestDistance = distance;
+			closestCentroidIndex = i;
+		}
+	}
 
-    // iterate over all centroids
-    for (size_t i = 0; i < centroids.size(); i += numCols) {
-        // calculate Euclidean distance between point and centroid
-        double distance = calculateEuclideanDistance(pointIndex, i, centroids, numCols, data);
-
-        // update closest centroid if distance is smaller
-        if (distance < minDistance) {
-            minDistance = distance;
-            closestCentroidIndex = i;
-        }
-    }	
-	return std::make_tuple(closestCentroidIndex, minDistance);
+	return std::make_tuple(closestCentroidIndex, closestDistance);
 }
 
 size_t averageOfPointsWithCluster(int j, std::vector<double> clusters){
@@ -223,11 +214,8 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 	for (int r = 0 ; r < repetitions ; r++)
 	{
 		size_t numSteps = 0;
-        // TODO: perform an actual k-means run, starting from random centroids
-        //       (see rng.h)
-		std::cerr << "TODO: implement this" << std::endl;
-
-		std::vector<size_t> centroids = chooseCentroidsAtRandom(numClusters, rng);
+ 
+		std::vector<size_t> centroids = chooseCentroidsAtRandom(numRows, rng);
 		std::vector<double> clusters(numRows, -1);
 
 		bool changed = true;
@@ -241,7 +229,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 				double distance;
 				std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(p, centroids, numCols, allData);
 				
-
 				distanceSquaredSum += distance;
 
 				if (newCluster != clusters[p]) {
@@ -327,7 +314,7 @@ int mainCxx(const std::vector<std::string> &args)
 
 	if (inputFileName.length() == 0 || outputFileName.length() == 0 || numClusters < 1 || repetitions < 1 || seed == 0)
 		usage();
-
+	
 	Rng rng(seed);
 
 	return kmeans(rng, inputFileName, outputFileName, numClusters, repetitions,
