@@ -139,7 +139,6 @@ std::vector<size_t> chooseCentroidsAtRandom(int numClusters, int numRows, Rng &r
 	return centroids;
 }
 
-// Fout zit hier ergens
 std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t p, const std::vector<size_t>& centroids, const int numCols, const std::vector<double>& allData) {
 	size_t closestCentroidIndex = 0;
 	double closestDistance = std::numeric_limits<double>::infinity();
@@ -150,12 +149,12 @@ std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t p, c
 			double diff = allData[p * numCols + j] - allData[centroids[i] * numCols + j];
 			distance += diff * diff;
 		}
+		distance = sqrt(distance);
 		if (distance < closestDistance) {
 			closestDistance = distance;
 			closestCentroidIndex = i;
 		}
 	}
-
 	return std::make_tuple(closestCentroidIndex, closestDistance);
 }
 
@@ -187,7 +186,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 		return -1;
 	}
 
-	// TODO: load dataset
 	std::ifstream input(inputFile);
 	if (!input.is_open())
 	{
