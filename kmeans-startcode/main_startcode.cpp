@@ -222,7 +222,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
     // the best result of these repetitions.
 	for (int r = 0 ; r < repetitions ; r++)
 	{
-		std::cout << "Repetition " << r << std::endl;
 		size_t numSteps = 0;
  
 		std::vector<double> centroids = chooseCentroidsAtRandom(numClusters, numRows, numCols, allData, rng);	
@@ -263,7 +262,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			}
 			numSteps++;
 		}
-		std::cout << "End of repetition " << r << std::endl;
 
 		stepsPerRepetition[r] = numSteps;
 
