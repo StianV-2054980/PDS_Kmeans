@@ -244,6 +244,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 					clusters[p] = newCluster;
 				}
 			}
+			centroidDebugFile.write(clusters);
 
 			if (changed) {
 				// recalculate centroids based on current clustering
@@ -327,6 +328,11 @@ int mainCxx(const std::vector<std::string> &args)
 		usage();
 	
 	Rng rng(seed);
+
+	if (centroidTraceFileName.length() == 0 || clusterTraceFileName.length() == 0) {
+		centroidTraceFileName = "centroidtrace.csv";
+		clusterTraceFileName = "clustertrace.csv";
+	}
 
 	return kmeans(rng, inputFileName, outputFileName, numClusters, repetitions,
 			      numBlocks, numThreads, centroidTraceFileName, clusterTraceFileName);
