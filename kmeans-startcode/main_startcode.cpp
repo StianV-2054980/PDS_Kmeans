@@ -244,7 +244,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 					clusters[p] = newCluster;
 				}
 			}
-			centroidDebugFile.write(clusters);
 
 			if (changed) {
 				// recalculate centroids based on current clustering
