@@ -164,7 +164,7 @@ std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row,
 	return std::make_tuple(closestCentroidIndex, closestDistance);
 }
 
-std::vector<double> averageOfPointsWithCluster(int centroidIndex, int numCols, std::vector<double>& clusters, std::vector<double>& allData){
+std::vector<double> averageOfPointsWithCluster(int centroidIndex, int numCols, std::vector<size_t>& clusters, std::vector<double>& allData){
 	std::vector<double> newCentroid(numCols);
 	for(size_t col = 0; col < numCols; col++){
 		size_t numPoints = 0;
@@ -213,7 +213,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 	double bestDistSquaredSum = std::numeric_limits<double>::max(); // can only get better
 	std::vector<size_t> stepsPerRepetition(repetitions); // to save the number of steps each rep needed
-	std::vector<double> bestClusters(numRows, -1); // to save the best clustering
+	std::vector<size_t> bestClusters(numRows, -1); // to save the best clustering
 
 	timer.start();
 
@@ -225,7 +225,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 		size_t numSteps = 0;
  
 		std::vector<double> centroids = chooseCentroidsAtRandom(numClusters, numRows, numCols, allData, rng);	
-		std::vector<double> clusters(numRows, -1);
+		std::vector<size_t> clusters(numRows, -1);
 
 		bool changed = true;
 		while (changed)
@@ -328,11 +328,6 @@ int mainCxx(const std::vector<std::string> &args)
 		usage();
 	
 	Rng rng(seed);
-
-	if (centroidTraceFileName.length() == 0 || clusterTraceFileName.length() == 0) {
-		centroidTraceFileName = "centroidtrace.csv";
-		clusterTraceFileName = "clustertrace.csv";
-	}
 
 	return kmeans(rng, inputFileName, outputFileName, numClusters, repetitions,
 			      numBlocks, numThreads, centroidTraceFileName, clusterTraceFileName);
