@@ -1,4 +1,4 @@
 --input 100000x5.csv --output someoutput.csv --seed 2054980 --k 3 --repetitions 5
 
-Snelheid:
-Testimplementatie snelheid:
+Snelheid: 0.843714sec
+Referentie-implementatie snelheid: 0.296549sec
