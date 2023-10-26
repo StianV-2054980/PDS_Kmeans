@@ -132,7 +132,7 @@ FileCSVWriter openDebugFile(const std::string &n)
 	return f;
 }
 
-std::vector<double> chooseCentroidsAtRandom(int numClusters, int numRows, int numCols, std::vector<double> &allData, Rng &rng) {
+std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, size_t numCols, std::vector<double> &allData, Rng &rng) {
 	// Use rng to pick numCluster random points
 	std::vector<size_t> centroidsIndices(numClusters);
 	rng.pickRandomIndices(numRows, centroidsIndices);
@@ -145,7 +145,7 @@ std::vector<double> chooseCentroidsAtRandom(int numClusters, int numRows, int nu
 	return centroids;
 }
 
-std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const int numCols, const std::vector<double>& allData) {
+std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const size_t numCols, const std::vector<double>& allData) {
 	size_t closestCentroidIndex = 0;
 	double closestDistance = std::numeric_limits<double>::max();
 
@@ -155,16 +155,16 @@ std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row,
 			double diff = allData[row * numCols + j] - centroids[i * numCols + j];
 			distance += (diff * diff);
 		}
-		double dist = sqrt(distance);
-		if (dist < closestDistance) {
-			closestDistance = dist;
+		//double dist = sqrt(distance);
+		if (distance < closestDistance) {
+			closestDistance = distance;
 			closestCentroidIndex = i;
 		}
 	}
 	return std::make_tuple(closestCentroidIndex, closestDistance);
 }
 
-std::vector<double> averageOfPointsWithCluster(int centroidIndex, int numCols, std::vector<size_t>& clusters, std::vector<double>& allData){
+std::vector<double> averageOfPointsWithCluster(size_t centroidIndex, size_t numCols, std::vector<size_t>& clusters, std::vector<double>& allData){
 	std::vector<double> newCentroid(numCols);
 	for(size_t col = 0; col < numCols; col++){
 		size_t numPoints = 0;
