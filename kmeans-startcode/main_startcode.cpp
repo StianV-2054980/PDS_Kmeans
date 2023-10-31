@@ -137,9 +137,9 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 	std::vector<size_t> centroidsIndices(numClusters);
 	rng.pickRandomIndices(numRows, centroidsIndices);
 	std::vector<double> centroids(numClusters * numCols);
-	for(int j = 0; j < centroidsIndices.size(); j++){
-		for(int i = 0; i < numCols; i++){
-				centroids[j * numCols + i] = allData[centroidsIndices[j] + i];
+	for(size_t centroidindex = 0; centroidindex < centroidsIndices.size(); centroidindex++){
+		for(size_t col = 0; col < numCols; col++){
+				centroids[centroidindex * numCols + col] = allData[centroidsIndices[centroidindex] + col];
 		}
 	}
 	return centroids;
@@ -149,16 +149,15 @@ std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row,
 	size_t closestCentroidIndex = 0;
 	double closestDistance = std::numeric_limits<double>::max();
 
-	for (size_t i = 0; i < centroids.size(); i++) {
+	for (size_t centroidindex = 0; centroidindex < centroids.size(); centroidindex += numCols) {
 		double distance = 0;
-		for (int j = 0; j < numCols; j++) {
-			double diff = allData[row * numCols + j] - centroids[i * numCols + j];
+		for (size_t col = 0; col < numCols; col++) {
+			double diff = allData[row * numCols + col] - centroids[centroidindex+ col];
 			distance += (diff * diff);
 		}
-		//double dist = sqrt(distance);
 		if (distance < closestDistance) {
 			closestDistance = distance;
-			closestCentroidIndex = i;
+			closestCentroidIndex = centroidindex;
 		}
 	}
 	return std::make_tuple(closestCentroidIndex, closestDistance);
