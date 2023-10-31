@@ -152,7 +152,7 @@ std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row,
 	for (size_t centroidindex = 0; centroidindex < numClusters; centroidindex++) {
 		double distance = 0;
 		for (size_t col = 0; col < numCols; col++) {
-			double diff = allData[row * numCols + col + numCols] - centroids[centroidindex * numCols + col];
+			double diff = allData[row * numCols + col] - centroids[centroidindex * numCols + col];
 			distance += (diff * diff);
 		}
 		if (distance < closestDistance) {
@@ -171,7 +171,7 @@ std::vector<double> averageOfPointsWithCluster(size_t centroidIndex, size_t numC
 		for (size_t i = 0; i < clusters.size(); i++) {
 			if (clusters[i] == centroidIndex) {
 				numPoints++;
-				sum += allData[i * numCols + col + numCols];
+				sum += allData[i * numCols + col];
 			}
 		}
 		newCentroid[col] = sum/numPoints;
