@@ -232,6 +232,10 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			changed = false;
 			double distanceSquaredSum = 0;
 
+			// Log centroids
+			if(centroidDebugFile.is_open())
+				centroidDebugFile.write(centroids, numCols);
+
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
@@ -262,13 +266,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			numSteps++;
 
 			
-			// Log first repetition to debug files
-			if(centroidDebugFile.is_open())
-				for(size_t i = 0; i < numCols; i++)
-					for(size_t j = 0; j < numClusters; j++) {
-						std::vector<double> writeCentroids(centroids.begin() + j * numCols, centroids.begin() + (j + i) * numCols);
-						centroidDebugFile.write(writeCentroids);
-					}
+			// Log clusters
 			if(clustersDebugFile.is_open())
 				clustersDebugFile.write(clusters);
 		}
