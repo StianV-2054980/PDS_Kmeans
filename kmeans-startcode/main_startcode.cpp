@@ -137,7 +137,7 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 	std::vector<size_t> centroidsIndices(numClusters);
 	rng.pickRandomIndices(numRows, centroidsIndices);
 	std::vector<double> centroids(numClusters * numCols);
-	for(size_t centroidindex = 0; centroidindex < centroidsIndices.size(); centroidindex++){
+	for(size_t centroidindex = 0; centroidindex < numClusters; centroidindex++){
 		for(size_t col = 0; col < numCols; col++){
 				centroids[centroidindex * numCols + col] = allData[centroidsIndices[centroidindex] + col];
 		}
@@ -145,14 +145,14 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 	return centroids;
 }
 
-std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const size_t numCols, const std::vector<double>& allData) {
+std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const size_t numCols, const std::vector<double>& allData, size_t numClusters) {
 	size_t closestCentroidIndex = 0;
 	double closestDistance = std::numeric_limits<double>::max();
 
-	for (size_t centroidindex = 0; centroidindex < centroids.size(); centroidindex += numCols) {
+	for (size_t centroidindex = 0; centroidindex < numClusters; centroidindex++) {
 		double distance = 0;
 		for (size_t col = 0; col < numCols; col++) {
-			double diff = allData[row * numCols + col] - centroids[centroidindex+ col];
+			double diff = allData[row * numCols + col] - centroids[centroidindex * numCols + col];
 			distance += (diff * diff);
 		}
 		if (distance < closestDistance) {
@@ -232,24 +232,24 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			changed = false;
 			double distanceSquaredSum = 0;
 
-			for (int p = 0; p < numRows; p++) {
+			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
-				std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(p, centroids, numCols, allData);
+				std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(row, centroids, numCols, allData, numClusters);
 				distanceSquaredSum += distance;
 				
-				if (newCluster != clusters[p]) {
+				if (newCluster != clusters[row]) {
 					changed = true;
-					clusters[p] = newCluster;
+					clusters[row] = newCluster;
 				}
 			}
 
 			if (changed) {
 				// recalculate centroids based on current clustering
-				for (int j = 0; j < numClusters; j++) {
-					std::vector<double> newCentroids = averageOfPointsWithCluster(j, numCols, clusters, allData);
-					for(int i = 0 ; i <numCols; i++){
-						centroids[j * numCols + i] = newCentroids[i];
+				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
+					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
+					for(int col = 0 ; col < numCols; col++){
+						centroids[centroidIndex * numCols + col] = newCentroids[col];
 					}
 				}
 			}
