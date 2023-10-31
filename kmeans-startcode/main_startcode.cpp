@@ -261,15 +261,20 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 				bestClusters = clusters;
 			}
 			numSteps++;
+
+			
+			// Log first repetition to debug files
+			if(centroidDebugFile.is_open())
+				for(size_t i = 0; i < numCols; i++)
+					for(size_t j = 0; j < numClusters; j++) {
+						std::vector<double> writeCentroids(centroids.begin() + j * numCols, centroids.begin() + (j + i) * numCols);
+						centroidDebugFile.write(writeCentroids);
+					}
+			if(clustersDebugFile.is_open())
+				clustersDebugFile.write(clusters);
 		}
 
 		stepsPerRepetition[r] = numSteps;
-
-		// Log first repetition to debug files
-		if(centroidDebugFile.is_open())
-			centroidDebugFile.write(centroids);
-		if(clustersDebugFile.is_open())
-			clustersDebugFile.write(clusters);
 
 		// Make sure debug logging is only done on first iteration ; subsequent checks
 		// with is_open will indicate that no logging needs to be done anymore.
