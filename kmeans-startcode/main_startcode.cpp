@@ -139,7 +139,7 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 	std::vector<double> centroids(numClusters * numCols);
 	for(size_t centroidindex = 0; centroidindex < numClusters; centroidindex++){
 		for(size_t col = 0; col < numCols; col++){
-				centroids[centroidindex * numCols + col] = allData[centroidsIndices[centroidindex] + col];
+				centroids[centroidindex * numCols + col] = allData[centroidsIndices[centroidindex] + 1 + col];
 		}
 	}
 	return centroids;
