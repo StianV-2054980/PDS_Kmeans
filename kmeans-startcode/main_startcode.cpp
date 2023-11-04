@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdlib>
 #include <tuple>
+#include <omp.h>
 #include "CSVReader.hpp"
 #include "CSVWriter.hpp"
 #include "rng.h"
@@ -215,15 +216,17 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 	std::vector<size_t> bestClusters(numRows, -1); // to save the best clustering
 
 	timer.start();
+	numThreads = 10; // TODO: give numThreads as command line!
 
     // Do the k-means routine a number of times, each time starting from
     // different random centroids (use Rng::pickRandomIndices), and keep 
-    // the best result of these repetitions.
+	// the best result of these repetitions.
+	#pragma omp parallel for num_threads(numThreads) reduction(min:bestDistSquaredSum) schedule(dynamic, 1)
 	for (int r = 0 ; r < repetitions ; r++)
 	{
 		size_t numSteps = 0;
- 
-		std::vector<double> centroids = chooseCentroidsAtRandom(numClusters, numRows, numCols, allData, rng);	
+
+		std::vector<double> centroids = chooseCentroidsAtRandom(numClusters, numRows, numCols, allData, rng);    
 		std::vector<size_t> clusters(numRows, -1);
 
 		bool changed = true;
@@ -236,6 +239,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
+			#pragma omp parallel for reduction(+:distanceSquaredSum) num_threads(numThreads) schedule(dynamic, 1)
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
@@ -250,6 +254,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			if (changed) {
 				// recalculate centroids based on current clustering
+				#pragma omp parallel for num_threads(numThreads) schedule(static, 1)
 				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
 					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
 					for(int col = 0 ; col < numCols; col++){
@@ -278,7 +283,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 		centroidDebugFile.close();
 		clustersDebugFile.close();
 	}
-
 	timer.stop();
 
 	// Some example output, of course you can log your timing data anyway you like.
