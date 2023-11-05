@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdlib>
 #include <tuple>
+#include <omp.h>
 #include "CSVReader.hpp"
 #include "CSVWriter.hpp"
 #include "rng.h"
@@ -236,6 +237,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
+			#pragma omp parallel for num_threads(numThreads) reduction(+:distanceSquaredSum)
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
@@ -250,6 +252,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			if (changed) {
 				// recalculate centroids based on current clustering
+				#pragma omp parallel for num_threads(numThreads)
 				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
 					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
 					for(int col = 0 ; col < numCols; col++){

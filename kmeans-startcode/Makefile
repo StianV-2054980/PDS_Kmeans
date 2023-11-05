@@ -5,7 +5,7 @@
 
 # Settings for optimized build
 CXX = g++
-FLAGS=-O3 -DNDEBUG -std=c++14
+FLAGS=-O3 -DNDEBUG -std=c++14 -fopenmp
 
 # Settings for a debug build
 #FLAGS=-g -std=c++14
