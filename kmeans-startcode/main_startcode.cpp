@@ -169,6 +169,7 @@ std::vector<double> averageOfPointsWithCluster(size_t centroidIndex, size_t numC
 	for(size_t col = 0; col < numCols; col++){
 		size_t numPoints = 0;
 		double sum = 0;
+		#pragma omp parallel for reduction(+:numPoints,sum) schedule(static, 1)
 		for (size_t i = 0; i < clusters.size(); i++) {
 			if (clusters[i] == centroidIndex) {
 				numPoints++;
@@ -237,7 +238,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
-			#pragma omp parallel for num_threads(numThreads) reduction(+:distanceSquaredSum)
+			#pragma omp parallel for schedule(static, 1) num_threads(numThreads) reduction(+:distanceSquaredSum)
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
@@ -252,7 +253,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			if (changed) {
 				// recalculate centroids based on current clustering
-				#pragma omp parallel for num_threads(numThreads)
+				#pragma omp parallel for schedule(static, 1) num_threads(numThreads)
 				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
 					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
 					for(int col = 0 ; col < numCols; col++){
