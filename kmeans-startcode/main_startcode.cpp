@@ -241,7 +241,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
-			#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) // TODO: Check if static 4 is good
+			#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum)
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
