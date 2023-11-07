@@ -138,7 +138,7 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 	std::vector<size_t> centroidsIndices(numClusters);
 	rng.pickRandomIndices(numRows, centroidsIndices);
 	std::vector<double> centroids(numClusters * numCols);
-	#pragma omp parallel for schedule(static, 4)
+	#pragma omp parallel for schedule(static, 1)
 	for(size_t centroidindex = 0; centroidindex < numClusters; centroidindex++){
 		for(size_t col = 0; col < numCols; col++){
 				centroids[centroidindex * numCols + col] = allData[centroidsIndices[centroidindex] * numCols + col];
@@ -241,7 +241,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
-			#pragma omp parallel for schedule(static, 4) reduction(+:distanceSquaredSum) // TODO: Check if static 4 is good
+			#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) // TODO: Check if static 4 is good
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
