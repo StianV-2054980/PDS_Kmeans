@@ -12,4 +12,4 @@ source /data/leuven/303/vsc30380/slurmhooks
 module purge
 
 make
-./kmeans --input 100000x5.csv --output someoutput.csv --seed 1337 --k 10 --repetitions 20
+./kmeans --input 100000x5.csv --output someoutput.csv --seed 1337 --k 10 --repetitions 20 --threads 8
