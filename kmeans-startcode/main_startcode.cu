@@ -216,7 +216,6 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 	std::vector<size_t> stepsPerRepetition(repetitions); // to save the number of steps each rep needed
 	std::vector<size_t> bestClusters(numRows, -1); // to save the best clustering
 
-	omp_set_num_threads(numThreads);
 	timer.start();
 
     // Do the k-means routine a number of times, each time starting from
@@ -239,7 +238,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
-			#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) reduction(||:changed)
+			//#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) reduction(||:changed)
 			for (int row = 0; row < numRows; row++) {
 				size_t newCluster;
 				double distance;
@@ -254,7 +253,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			if (changed) {
 				// recalculate centroids based on current clustering
-				#pragma omp parallel for schedule(static, 1) // Static 1 because not that much clusters!
+				//#pragma omp parallel for schedule(static, 1) // Static 1 because not that much clusters!
 				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
 					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
 					for(int col = 0 ; col < numCols; col++){
