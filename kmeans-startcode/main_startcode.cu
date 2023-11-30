@@ -133,6 +133,7 @@ FileCSVWriter openDebugFile(const std::string &n)
 	return f;
 }
 
+
 std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, size_t numCols, std::vector<double> &allData, Rng &rng) {
 	// Use rng to pick numCluster random points
 	std::vector<size_t> centroidsIndices(numClusters);
@@ -145,6 +146,32 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 	}
 	return centroids;
 }
+
+__global__ void findClosestCentroidIndexAndDistanceKernel(const size_t numRows, const size_t numCols, const size_t numClusters, const double* centroids, const double* allData, size_t* clusters, double* distanceSquaredSum, bool* changed) {
+	size_t row = blockIdx.x * blockDim.x + threadIdx.x;
+	if (row < numRows) {
+		size_t closestCentroidIndex = 0;
+		double closestDistance = std::numeric_limits<double>::max();
+
+		for (size_t centroidindex = 0; centroidindex < numClusters; centroidindex++) {
+			double distance = 0;
+			for (size_t col = 0; col < numCols; col++) {
+				double diff = allData[row * numCols + col] - centroids[centroidindex * numCols + col];
+				distance += (diff * diff);
+			}
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestCentroidIndex = centroidindex;
+			}
+		}
+		atomicAdd(distanceSquaredSum, closestDistance);
+		if (clusters[row] != closestCentroidIndex) {
+			*changed = true;
+			clusters[row] = closestCentroidIndex;
+		}
+	}
+}
+
 
 std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const size_t numCols, const std::vector<double>& allData, size_t numClusters) {
 	size_t closestCentroidIndex = 0;
@@ -238,18 +265,45 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open())
 				centroidDebugFile.write(centroids, numCols);
 
-			//#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) reduction(||:changed)
-			for (int row = 0; row < numRows; row++) {
-				size_t newCluster;
-				double distance;
-				std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(row, centroids, numCols, allData, numClusters);
-				distanceSquaredSum += distance;
+			// //#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) reduction(||:changed)
+			// for (int row = 0; row < numRows; row++) {
+			// 	size_t newCluster;
+			// 	double distance;
+			// 	std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(row, centroids, numCols, allData, numClusters);
+			// 	distanceSquaredSum += distance;
 				
-				if (newCluster != clusters[row]) {
-					changed = true;
-					clusters[row] = newCluster;
-				}
-			}
+			// 	if (newCluster != clusters[row]) {
+			// 		changed = true;
+			// 		clusters[row] = newCluster;
+			// 	}
+			// }
+
+			// CUDA
+			// Allocate memory on device
+			size_t* clusters
+			double* distanceSquaredSum
+			bool* changed
+			cudaMalloc(&clusters , clusters.size() * sizeof(size_t));
+			cudaMalloc(&distanceSquaredSum , sizeof(double));
+			cudaMalloc(&changed , sizeof(bool));
+
+			// Copy data to device
+			cudaMemcpy(clusters, clusters.data(), clusters.size() * sizeof(size_t), cudaMemcpyHostToDevice);
+			cudaMemcpy(distanceSquaredSum, &distanceSquaredSum, sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(changed, &changed, sizeof(bool), cudaMemcpyHostToDevice);
+			
+
+			findClosestCentroidIndexAndDistanceKernel<<<numBlocks, numThreads>>>(numRows, numCols, numClusters, centroids.data(), allData.data(), clusters.data(), &distanceSquaredSum, &changed);
+			
+			cudaMemcpy(clusters.data(), clusters, clusters.size() * sizeof(size_t), cudaMemcpyDeviceToHost);
+			cudaMemcpy(&distanceSquaredSum, distanceSquaredSum, sizeof(double), cudaMemcpyDeviceToHost);
+			cudaMemcpy(&changed, changed, sizeof(bool), cudaMemcpyDeviceToHost);
+
+			// Free memory on device
+			cudaFree(clusters);
+			cudaFree(distanceSquaredSum);
+			cudaFree(changed);
+
 
 			if (changed) {
 				// recalculate centroids based on current clustering
