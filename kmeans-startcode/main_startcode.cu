@@ -3,7 +3,7 @@
 #include <string>
 #include <cstdlib>
 #include <tuple>
-#include <omp.h>
+#include <cuda.h>
 #include "CSVReader.hpp"
 #include "CSVWriter.hpp"
 #include "rng.h"
