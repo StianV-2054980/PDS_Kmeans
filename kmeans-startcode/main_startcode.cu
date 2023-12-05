@@ -8,6 +8,7 @@
 #include "CSVWriter.hpp"
 #include "rng.h"
 #include "timer.h"
+#include <cmath>
 
 void usage()
 {
@@ -148,10 +149,9 @@ std::vector<double> chooseCentroidsAtRandom(size_t numClusters, size_t numRows, 
 }
 
 __global__ void findClosestCentroidIndexAndDistanceKernel(const size_t numRows, const size_t numCols, const size_t numClusters, const double* centroids, const double* allData, size_t* clusters, double* distanceSquaredSum, bool* changed) {
-	size_t row = blockIdx.x * blockDim.x + threadIdx.x;
-	if (row < numRows) {
+	for(int row = blockIdx.x * blockDim.x + threadIdx.x; row < numRows; row += blockDim.x * gridDim.x) {
 		size_t closestCentroidIndex = 0;
-		double closestDistance = std::numeric_limits<double>::max();
+		double closestDistance = INFINITY;
 
 		for (size_t centroidindex = 0; centroidindex < numClusters; centroidindex++) {
 			double distance = 0;
@@ -280,29 +280,37 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			// CUDA
 			// Allocate memory on device
-			size_t* clusters
-			double* distanceSquaredSum
-			bool* changed
-			cudaMalloc(&clusters , clusters.size() * sizeof(size_t));
-			cudaMalloc(&distanceSquaredSum , sizeof(double));
-			cudaMalloc(&changed , sizeof(bool));
+			size_t* clustersCuda;
+		 	double* distanceSquaredSumCuda;
+			bool* changedCuda;
+			double* centroidsCuda;
+			double* allDataCuda;
+
+			cudaMalloc(&clustersCuda , clusters.size() * sizeof(size_t));
+			cudaMalloc(&distanceSquaredSumCuda , sizeof(double));
+			cudaMalloc(&changedCuda , sizeof(bool));
+			cudaMalloc(&centroidsCuda , centroids.size() * sizeof(double));
+			cudaMalloc(&allDataCuda , allData.size() * sizeof(double));
 
 			// Copy data to device
-			cudaMemcpy(clusters, clusters.data(), clusters.size() * sizeof(size_t), cudaMemcpyHostToDevice);
-			cudaMemcpy(distanceSquaredSum, &distanceSquaredSum, sizeof(double), cudaMemcpyHostToDevice);
-			cudaMemcpy(changed, &changed, sizeof(bool), cudaMemcpyHostToDevice);
-			
+			cudaMemcpy(clustersCuda, clusters.data(), clusters.size() * sizeof(size_t), cudaMemcpyHostToDevice);
+			cudaMemcpy(distanceSquaredSumCuda, &distanceSquaredSum, sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(changedCuda, &changed, sizeof(bool), cudaMemcpyHostToDevice);
+			cudaMemcpy(centroidsCuda, centroids.data(), centroids.size() * sizeof(double), cudaMemcpyHostToDevice);
+			cudaMemcpy(allDataCuda, allData.data(), allData.size() * sizeof(double), cudaMemcpyHostToDevice);
 
-			findClosestCentroidIndexAndDistanceKernel<<<numBlocks, numThreads>>>(numRows, numCols, numClusters, centroids.data(), allData.data(), clusters.data(), &distanceSquaredSum, &changed);
+		    findClosestCentroidIndexAndDistanceKernel<<<numBlocks, numThreads>>>(numRows, numCols, numClusters, centroidsCuda, allDataCuda, clustersCuda, distanceSquaredSumCuda, changedCuda);
 			
-			cudaMemcpy(clusters.data(), clusters, clusters.size() * sizeof(size_t), cudaMemcpyDeviceToHost);
-			cudaMemcpy(&distanceSquaredSum, distanceSquaredSum, sizeof(double), cudaMemcpyDeviceToHost);
-			cudaMemcpy(&changed, changed, sizeof(bool), cudaMemcpyDeviceToHost);
+			cudaMemcpy(clusters.data(), clustersCuda, clusters.size() * sizeof(size_t), cudaMemcpyDeviceToHost);
+			cudaMemcpy(&distanceSquaredSum, distanceSquaredSumCuda, sizeof(double), cudaMemcpyDeviceToHost);
+			cudaMemcpy(&changed, changedCuda, sizeof(bool), cudaMemcpyDeviceToHost);
 
 			// Free memory on device
-			cudaFree(clusters);
-			cudaFree(distanceSquaredSum);
-			cudaFree(changed);
+			cudaFree(clustersCuda);
+			cudaFree(distanceSquaredSumCuda);
+			cudaFree(changedCuda);
+			cudaFree(allDataCuda);
+			cudaFree(centroidsCuda);
 
 
 			if (changed) {
@@ -325,8 +333,8 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			
 			// Log clusters
-			if(clustersDebugFile.is_open())
-				clustersDebugFile.write(clusters);
+			// if(clustersDebugFile.is_open())
+			// 	clustersDebugFile.write(clusters);
 		}
 
 		stepsPerRepetition[r] = numSteps;

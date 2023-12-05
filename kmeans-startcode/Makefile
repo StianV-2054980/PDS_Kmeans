@@ -15,5 +15,5 @@ all: kmeans
 clean:
 	rm -f kmeans
 
-kmeans: main_startcode.cu rng.cpp timer.h
+kmeans: main_startcode.cu
 	$(NVCC) $(FLAGS) -o kmeans main_startcode.cu rng.cpp
