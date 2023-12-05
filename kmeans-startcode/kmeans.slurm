@@ -10,6 +10,8 @@
 source /data/leuven/303/vsc30380/slurmhooks
 
 module purge
+module load GCC/10.3.0
+module load CUDA/11.7.0
 
 make
 ./kmeans --input 100000x5.csv --output someoutput.csv --seed 1337 --k 10 --repetitions 20 --threads 8
