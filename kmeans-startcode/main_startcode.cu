@@ -172,12 +172,24 @@ __global__ void findClosestCentroidIndexAndDistanceKernel(const size_t numRows, 
 	}
 }
 
+__global__ void averageOfPointsWithClusterKernel(const size_t numCols, const size_t numPoints, const size_t centroidIndex, const size_t numClusters, size_t* clusters, double* allData, double* centroids) {
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	if(col < numCols) {
+		double distanceSum = 0.0;
+		for (size_t i = 0; i < numClusters; i++) {
+			if (clusters[i] == centroidIndex) {
+				distanceSum += allData[i * numCols + col];
+			}
+		}
+		centroids[centroidIndex * numCols + col] = distanceSum/numPoints;
+	}
+}
+
 
 std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row, const std::vector<double>& centroids, const size_t numCols, const std::vector<double>& allData, size_t numClusters) {
 	size_t closestCentroidIndex = 0;
 	double closestDistance = std::numeric_limits<double>::max();
 
-	// openmp here results in infinite loop
 	for (size_t centroidindex = 0; centroidindex < numClusters; centroidindex++) {
 		double distance = 0;
 		for (size_t col = 0; col < numCols; col++) {
@@ -312,16 +324,47 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			cudaFree(allDataCuda);
 			cudaFree(centroidsCuda);
 
-
 			if (changed) {
 				// recalculate centroids based on current clustering
 				//#pragma omp parallel for schedule(static, 1) // Static 1 because not that much clusters!
 				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
-					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
-					for(int col = 0 ; col < numCols; col++){
-						centroids[centroidIndex * numCols + col] = newCentroids[col];
+					// Count number of points in cluster
+					size_t numPoints = 0;
+					for(size_t i = 0; i < clusters.size(); i++) {
+						if (clusters[i] == centroidIndex) {
+							numPoints++;
+						}
 					}
+					// CUDA for calculating new centroids per column
+					//Allocate memory on device
+					cudaMalloc(&clustersCuda , clusters.size() * sizeof(size_t));
+					cudaMalloc(&centroidsCuda , centroids.size() * sizeof(double));
+					cudaMalloc(&allDataCuda , allData.size() * sizeof(double));
+
+					//Copy data to device
+					cudaMemcpy(clustersCuda, clusters.data(), clusters.size() * sizeof(size_t), cudaMemcpyHostToDevice);
+					cudaMemcpy(centroidsCuda, centroids.data(), centroids.size() * sizeof(double), cudaMemcpyHostToDevice);
+					cudaMemcpy(allDataCuda, allData.data(), allData.size() * sizeof(double), cudaMemcpyHostToDevice);
+
+					//Call kernel
+					// Causes infinite loop!
+					averageOfPointsWithClusterKernel<<<numBlocks, numThreads>>>(numCols, numPoints, centroidIndex, numClusters, clustersCuda, allDataCuda, centroidsCuda);
+					cudaDeviceSynchronize(); // Sync to make sure all threads are done
+
+					//Copy data from device
+					cudaMemcpy(centroids.data(), centroidsCuda, centroids.size() * sizeof(double), cudaMemcpyDeviceToHost);
+
+					//Free memory on device
+					cudaFree(clustersCuda);
+					cudaFree(allDataCuda);
+					cudaFree(centroidsCuda);
 				}
+				// for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
+				// 	std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
+				// 	for(int col = 0 ; col < numCols; col++){
+				// 		centroids[centroidIndex * numCols + col] = newCentroids[col];
+				// 	}
+				// }
 			}
 
 			// keep track of best clustering
