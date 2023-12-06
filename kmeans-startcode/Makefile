@@ -15,4 +15,4 @@ clean:
 	rm -f kmeans
 
 kmeans: main_startcode.cu rng.cpp
-	nvcc $(FLAGS) -o kmeans main_startcode.cu rng.cpp
+	nvcc $(FLAGS) -o kmeans main_startcode.cu rng.cpp -gencode arch=compute_80,code=sm_80
