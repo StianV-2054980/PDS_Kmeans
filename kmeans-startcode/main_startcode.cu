@@ -164,7 +164,7 @@ __global__ void findClosestCentroidIndexAndDistanceKernel(const size_t numRows, 
 				closestCentroidIndex = centroidindex;
 			}
 		}
-		atomicAdd(distanceSquaredSum, closestDistance);
+		atomicAdd(*distanceSquaredSum, closestDistance);
 		if (clusters[row] != closestCentroidIndex) {
 			*changed = true;
 			clusters[row] = closestCentroidIndex;
@@ -197,7 +197,7 @@ __global__ void averageOfPointsWithClusterKernel(const size_t numClusters, const
         for(size_t col = 0; col < numCols; col++){
             size_t numPoints = 0;
             double sum = 0;
-            for (size_t i = 0; i < sizeOf(clusters); i++) {
+            for (size_t i = 0; i < sizeof(*clusters); i++) {
                 if (clusters[i] == centroidIndex) {
                     numPoints++;
                     sum += allData[i * numCols + col];
@@ -353,6 +353,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
                 cudaMemcpy(allDataCuda, allData.data(), allData.size() * sizeof(double), cudaMemcpyHostToDevice);
 
                 // Call kernel
+				printf("%d",clusters.size());
                 averageOfPointsWithClusterKernel<<<numBlocks, numThreads>>>(numClusters, numCols, clustersCuda, allDataCuda, centroidsCuda);
 
                 // Copy data back to host
