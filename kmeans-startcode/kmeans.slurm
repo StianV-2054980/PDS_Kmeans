@@ -15,4 +15,4 @@ module load OpenMPI/4.1.0-GCC-12.2.0
 
 make clean
 make
-mpirun ./kmeans --input 100000x5.csv --output someoutput.csv --seed 1337 --k 10 --repetitions 20 --threads 8
+EXECUTABLE=./kmeans_mpi ./mpiwrapper.sh --input 100000x5.csv --output someoutput.csv --seed 1337 --k 10 --repetitions 20 --threads 8
