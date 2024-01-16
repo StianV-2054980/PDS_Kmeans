@@ -11,7 +11,7 @@ source /data/leuven/303/vsc30380/slurmhooks
 
 module purge
 module load GCC/10.3.0
-module load OpenMPI/4.1.0-GCC-12.2.0
+module load OpenMPI/4.1.4-GCC-12.2.0
 
 make clean
 make
