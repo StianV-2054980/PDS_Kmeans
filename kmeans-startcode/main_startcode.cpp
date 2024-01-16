@@ -215,7 +215,11 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 	double bestDistSquaredSum = std::numeric_limits<double>::max(); // can only get better
 	std::vector<size_t> stepsPerRepetition(repetitions); // to save the number of steps each rep needed
 	std::vector<size_t> bestClusters(numRows, -1); // to save the best clustering
-	
+
+	int rank, size;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+
 	timer.start();
 
     // Do the k-means routine a number of times, each time starting from
