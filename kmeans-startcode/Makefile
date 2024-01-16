@@ -15,4 +15,4 @@ clean:
 	rm -f kmeans
 
 kmeans: main_startcode.cpp rng.cpp timer.h
-	mpicxx $(FLAGS) -o kmeans main_startcode.cpp rng.cpp
+	mpicxx $(FLAGS) -o kmeans_mpi main_startcode.cpp rng.cpp
