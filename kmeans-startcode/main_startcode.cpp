@@ -165,17 +165,28 @@ std::tuple<size_t, double> findClosestCentroidIndexAndDistance(const size_t row,
 	return std::make_tuple(closestCentroidIndex, closestDistance);
 }
 
-std::vector<double> averageOfPointsWithCluster(size_t centroidIndex, size_t numCols, std::vector<size_t>& clusters, std::vector<double>& allData){
+std::vector<double> averageOfPointsWithCluster(size_t centroidIndex, size_t numCols, std::vector<size_t>& clusters, std::vector<double>& allData, int rank, int size){
 	std::vector<double> newCentroid(numCols);
 	for(size_t col = 0; col < numCols; col++){
 		size_t numPoints = 0;
 		double sum = 0;
-		for (size_t i = 0; i < clusters.size(); i++) {
+
+		int count = clusters.size() / size;
+		int start = rank * count;
+		int stop = start + count;
+		for (size_t i = start; i < stop; i++) {
 			if (clusters[i] == centroidIndex) {
 				numPoints++;
 				sum += allData[i * numCols + col];
 			}
 		}
+		double globalSum = 0;
+		int globalNumPoints = 0;
+		MPI_Allreduce(&sum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce(&numPoints, &globalNumPoints, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+		sum = globalSum;
+		numPoints = globalNumPoints;
+
 		newCentroid[col] = sum/numPoints;
 	}
 	return newCentroid;
@@ -242,8 +253,13 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			if(centroidDebugFile.is_open() && rank == 0)
 				centroidDebugFile.write(centroids, numCols);
 
+			// For dividing the work over the processes
+			int count = numRows / size;
+			int start = rank * count;
+			int stop = start + count;
+
 			//#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) reduction(||:changed)
-			for (int row = 0; row < numRows; row++) {
+			for (int row = start; row < stop; row++) {
 				size_t newCluster;
 				double distance;
 				std::tie(newCluster, distance) = findClosestCentroidIndexAndDistance(row, centroids, numCols, allData, numClusters);
@@ -255,11 +271,22 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 				}
 			}
 
+			double globalDistanceSquaredSum = 0;
+			MPI_Allreduce(&distanceSquaredSum, &globalDistanceSquaredSum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+			bool globalChanged = false;
+			MPI_Allreduce(&changed, &globalChanged, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+			distanceSquaredSum = globalDistanceSquaredSum;
+			changed = globalChanged;
+
+			std::vector<size_t> globalClusters(numRows);
+			MPI_Allgather(clusters.data() + start, count, MPI_UNSIGNED_LONG, globalClusters.data(), count, MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+			clusters = globalClusters;
+
 			if (changed) {
 				// recalculate centroids based on current clustering
 				//#pragma omp parallel for schedule(static, 1) // Static 1 because not that much clusters!
 				for (int centroidIndex = 0; centroidIndex < numClusters; centroidIndex++) {
-					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData);
+					std::vector<double> newCentroids = averageOfPointsWithCluster(centroidIndex, numCols, clusters, allData, rank, size);
 					for(int col = 0 ; col < numCols; col++){
 						centroids[centroidIndex * numCols + col] = newCentroids[col];
 					}
