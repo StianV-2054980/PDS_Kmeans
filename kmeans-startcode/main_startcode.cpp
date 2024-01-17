@@ -239,7 +239,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 			double distanceSquaredSum = 0;
 
 			// Log centroids
-			if(centroidDebugFile.is_open())
+			if(centroidDebugFile.is_open() && rank == 0)
 				centroidDebugFile.write(centroids, numCols);
 
 			//#pragma omp parallel for schedule(static, 100) reduction(+:distanceSquaredSum) reduction(||:changed)
@@ -275,7 +275,7 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 
 			
 			// Log clusters
-			if(clustersDebugFile.is_open())
+			if(clustersDebugFile.is_open() && rank == 0)
 				clustersDebugFile.write(clusters);
 		}
 
@@ -290,15 +290,19 @@ int kmeans(Rng &rng, const std::string &inputFile, const std::string &outputFile
 	timer.stop();
 
 	// Some example output, of course you can log your timing data anyway you like.
-	std::cerr << "# Type,blocks,threads,file,seed,clusters,repetitions,bestdistsquared,timeinseconds" << std::endl;
-	std::cout << "sequential," << numBlocks << "," << numThreads << "," << inputFile << "," 
-			  << rng.getUsedSeed() << "," << numClusters << ","
-		      << repetitions << "," << bestDistSquaredSum << "," << timer.durationNanoSeconds()/1e9
-			  << std::endl;
+	if(rank == 0) {
+		std::cerr << "# Type,blocks,threads,file,seed,clusters,repetitions,bestdistsquared,timeinseconds" << std::endl;
+		std::cout << "sequential," << numBlocks << "," << numThreads << "," << inputFile << "," 
+					<< rng.getUsedSeed() << "," << numClusters << ","
+					<< repetitions << "," << bestDistSquaredSum << "," << timer.durationNanoSeconds()/1e9
+					<< std::endl;
+	
 
-	// Write the number of steps per repetition, kind of a signature of the work involved
-	csvOutputFile.write(stepsPerRepetition, "# Steps: ");
-	csvOutputFile.write(bestClusters);
+		// Write the number of steps per repetition, kind of a signature of the work involved
+		csvOutputFile.write(stepsPerRepetition, "# Steps: ");
+		csvOutputFile.write(bestClusters);
+	}
+	
 	return 0;
 }
 
